@@ -12,7 +12,7 @@ let package = Package(
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
-        .package(url: "https://github.com/daltoniam/Starscream.git", exact: "3.1.2"),
+        .package(url: "https://github.com/daltoniam/Starscream.git", .upToNextMajor(from: "4.0.8")),
         .package(url: "https://github.com/AlexMzrk/HandyJSON.git", branch: "master")
         ],
     targets: [

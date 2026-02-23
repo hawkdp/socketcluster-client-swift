@@ -34,17 +34,34 @@ public class ScClient : Listener, WebSocketDelegate {
         self.onAuthentication = onAuthentication
     }
     
-    public func websocketDidConnect(socket: WebSocketClient) {
+    public func didReceive(event: Starscream.WebSocketEvent, client: WebSocketClient) {
+        switch event {
+        case .connected:
+            websocketDidConnect(socket: client)
+        case .disconnected(_, _):
+            websocketDidDisconnect(socket: client, error: nil)
+        case .error(let error):
+            websocketDidDisconnect(socket: client, error: error)
+        case .text(let text):
+            websocketDidReceiveMessage(socket: client, text: text)
+        case .binary(let data):
+            websocketDidReceiveData(socket: client, data: data)
+        default:
+            break
+        }
+    }
+    
+    private func websocketDidConnect(socket: WebSocketClient) {
         counter.value = 0
         self.sendHandShake()
         onConnect?(self)
     }
     
-    public func websocketDidDisconnect(socket: WebSocketClient, error: Error?) {
+    private func websocketDidDisconnect(socket: WebSocketClient, error: Error?) {
         onDisconnect?(self, error)
     }
     
-    public func websocketDidReceiveMessage(socket: WebSocketClient, text: String) {
+    private func websocketDidReceiveMessage(socket: WebSocketClient, text: String) {
         if (text == "#1") {
             socket.write(string: "#2")
         } else {
@@ -84,32 +101,29 @@ public class ScClient : Listener, WebSocketDelegate {
         }
     }
     
-    public func websocketDidReceiveData(socket: WebSocketClient, data: Data) {
+    private func websocketDidReceiveData(socket: WebSocketClient, data: Data) {
         print("Received data: \(data.count)")
     }
     
     public init(url : String, authToken : String? = nil) {
         self.counter = AtomicInteger()
         self.authToken = authToken
-        self.socket = WebSocket(url: URL(string: url)!)
+        let request = URLRequest(url: URL(string: url)!)
+        self.socket = WebSocket(request: request)
         super.init()
         socket.delegate = self
     }
     
-    public init(urlRequest : URLRequest, authToken : String? = nil, protocols : [String]? = nil) {
+    public init(urlRequest : URLRequest, authToken : String? = nil) {
         self.counter = AtomicInteger()
         self.authToken = authToken
-        self.socket = WebSocket(request: urlRequest, protocols : protocols)
+        self.socket = WebSocket(request: urlRequest)
         super.init()
         socket.delegate = self
     }
     
     public func connect() {
         socket.connect()
-    }
-    
-    public func isConnected() -> Bool{
-        return socket.isConnected;
     }
     
     public func setBackgroundQueue(queueName : String) {
@@ -192,27 +206,5 @@ public class ScClient : Listener, WebSocketDelegate {
     public func disconnect() {
         socket.disconnect()
     }
-    
-    public func disableSSLVerification(value : Bool) {
-        socket.disableSSLCertValidation = value
-    }
-    
-    /**
-    Uses the .cer files in your app's bundle
-    */
-    public func useSSLCertificate() {
-        socket.security = SSLSecurity()
-    }
-    
-    /**
-    You load either a Data blob of your certificate or you can use a SecKeyRef if you have a public key you want to use.
-     - Parameters:
-        - data: Data blob of your certificate.
-        - usePublicKeys: The usePublicKeys bool is whether to use the certificates for validation or the public keys.
-    */
-    public func loadSSLCertificateFromData(data : Data, usePublicKeys : Bool = false) {
-        socket.security = SSLSecurity(certs: [SSLCert(data: data)], usePublicKeys: usePublicKeys)
-    }
-    
 }
 
